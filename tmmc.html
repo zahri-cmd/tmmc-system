@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistem TMMC — Politeknik Malaysia</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --biru: #1a3a6b;
+    --biru-muda: #2563eb;
+    --biru-latar: #e8f0fe;
+    --hijau: #166534;
+    --hijau-latar: #dcfce7;
+    --merah: #991b1b;
+    --merah-latar: #fee2e2;
+    --kuning-latar: #fefce8;
+    --kelabu: #6b7280;
+    --kelabu-latar: #f3f4f6;
+    --border: #d1d5db;
+    --putih: #ffffff;
+    --teks: #111827;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f1f5f9; color: var(--teks); font-size: 14px; }
+
+  /* ── Header ── */
+  .header { background: var(--biru); color: white; padding: 14px 24px; display: flex; align-items: center; gap: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+  .header h1 { font-size: 1.15rem; font-weight: 700; }
+  .header p { font-size: .78rem; opacity: .85; }
+
+  /* ── Nav Tabs ── */
+  .nav { background: white; border-bottom: 2px solid var(--border); display: flex; gap: 0; overflow-x: auto; }
+  .nav button { padding: 12px 22px; border: none; background: none; cursor: pointer; font-size: .88rem; font-weight: 500; color: var(--kelabu); white-space: nowrap; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all .2s; }
+  .nav button:hover { color: var(--biru-muda); background: var(--biru-latar); }
+  .nav button.aktif { color: var(--biru); border-bottom-color: var(--biru); font-weight: 700; }
+
+  /* ── Layout ── */
+  .container { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+  .modul { display: none; }
+  .modul.aktif { display: block; }
+  .kad { background: white; border-radius: 10px; border: 1px solid var(--border); padding: 20px 24px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  .kad h2 { font-size: 1rem; font-weight: 700; color: var(--biru); margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+
+  /* ── Form ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: .82rem; font-weight: 600; color: #374151; }
+  .field input, .field select, .field textarea {
+    border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px;
+    font-size: .88rem; font-family: inherit; background: white;
+    transition: border-color .2s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--biru-muda); box-shadow: 0 0 0 2px rgba(37,99,235,.15); }
+  .field textarea { resize: vertical; min-height: 60px; }
+
+  /* ── Butang ── */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 7px; border: none; cursor: pointer; font-size: .88rem; font-weight: 600; transition: all .2s; }
+  .btn-utama { background: var(--biru); color: white; }
+  .btn-utama:hover { background: #142d54; }
+  .btn-hijau { background: #16a34a; color: white; }
+  .btn-hijau:hover { background: #15803d; }
+  .btn-kelabu { background: var(--kelabu-latar); color: #374151; border: 1px solid var(--border); }
+  .btn-kelabu:hover { background: #e5e7eb; }
+  .btn-merah { background: #dc2626; color: white; }
+  .btn-merah:hover { background: #b91c1c; }
+  .btn-kecil { padding: 5px 10px; font-size: .78rem; }
+  .baris-butang { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+
+  /* ── Jadual ── */
+  .jadual-wrapper { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+  thead th { background: var(--biru); color: white; padding: 10px 12px; text-align: left; font-weight: 600; white-space: nowrap; }
+  tbody tr:nth-child(even) { background: #f8fafc; }
+  tbody tr:hover { background: var(--biru-latar); }
+  tbody td { padding: 9px 12px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
+  tfoot td { background: var(--biru); color: white; padding: 9px 12px; font-weight: 700; }
+
+  /* ── Badge & Status ── */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: .75rem; font-weight: 600; }
+  .badge-hijau { background: var(--hijau-latar); color: var(--hijau); }
+  .badge-merah { background: var(--merah-latar); color: var(--merah); }
+  .badge-biru { background: var(--biru-latar); color: var(--biru); }
+  .badge-kuning { background: var(--kuning-latar); color: #854d0e; }
+
+  /* ── Notifikasi ── */
+  .notif { padding: 10px 14px; border-radius: 7px; font-size: .85rem; margin-bottom: 14px; display: none; }
+  .notif.aktif { display: block; }
+  .notif-hijau { background: var(--hijau-latar); color: var(--hijau); border-left: 4px solid #16a34a; }
+  .notif-merah { background: var(--merah-latar); color: var(--merah); border-left: 4px solid #dc2626; }
+  .notif-biru { background: var(--biru-latar); color: var(--biru); border-left: 4px solid var(--biru-muda); }
+
+  /* ── Metrik ── */
+  .grid-metrik { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .metrik { background: white; border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+  .metrik .nilai { font-size: 2rem; font-weight: 800; color: var(--biru); }
+  .metrik .label { font-size: .78rem; color: var(--kelabu); margin-top: 4px; }
+
+  /* ── CLO baris dalam CIST ── */
+  .clo-baris { background: var(--kelabu-latar); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+  .clo-baris h4 { color: var(--biru); font-size: .9rem; margin-bottom: 10px; }
+
+  /* ── Tab dalam modul ── */
+  .sub-tab-nav { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .sub-tab-btn { padding: 7px 16px; border-radius: 20px; border: 1px solid var(--border); background: white; cursor: pointer; font-size: .83rem; font-weight: 500; color: var(--kelabu); transition: all .2s; }
+  .sub-tab-btn.aktif { background: var(--biru); color: white; border-color: var(--biru); }
+  .sub-tab { display: none; }
+  .sub-tab.aktif { display: block; }
+
+  /* ── Graf ── */
+  .graf-wrapper { position: relative; height: 300px; }
+
+  /* ── Halaman utama ── */
+  .hero { background: linear-gradient(135deg, var(--biru) 0%, #2563eb 100%); color: white; border-radius: 12px; padding: 28px; margin-bottom: 20px; }
+  .hero h2 { font-size: 1.4rem; margin-bottom: 8px; }
+  .hero p { opacity: .85; font-size: .9rem; }
+  .grid-kad-utama { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .kad-modul { background: white; border-radius: 10px; border: 1px solid var(--border); padding: 20px; cursor: pointer; transition: all .2s; }
+  .kad-modul:hover { box-shadow: 0 4px 16px rgba(37,99,235,.15); transform: translateY(-2px); border-color: var(--biru-muda); }
+  .kad-modul .ikon { font-size: 2rem; margin-bottom: 10px; }
+  .kad-modul h3 { font-size: .95rem; color: var(--biru); margin-bottom: 6px; }
+  .kad-modul p { font-size: .82rem; color: var(--kelabu); line-height: 1.5; }
+
+  /* ── Slider ── */
+  .slider-row { display: flex; align-items: center; gap: 12px; }
+  .slider-row input[type=range] { flex: 1; accent-color: var(--biru); }
+  .slider-val { font-weight: 700; color: var(--biru); min-width: 40px; }
+
+  /* ── Responsif ── */
+  @media (max-width: 700px) {
+    .grid-2, .grid-3, .grid-metrik, .grid-kad-utama { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     HEADER
+════════════════════════════════════════════ -->
+<div class="header">
+  <div style="font-size:2rem;">⚙️</div>
+  <div>
+    <h1>Sistem Pengurusan Kursus TMMC</h1>
+    <p>Troubleshooting &amp; Maintenance for Mechanical Components | DEM30043 | Politeknik Malaysia</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     NAV TABS
+════════════════════════════════════════════ -->
+<div class="nav">
+  <button class="aktif" onclick="tunjukModul('utama',this)">🏠 Utama</button>
+  <button onclick="tunjukModul('cist',this)">📋 Pembina CIST</button>
+  <button onclick="tunjukModul('penilaian',this)">📝 Item Penilaian</button>
+  <button onclick="tunjukModul('cqi',this)">📊 Laporan CQI/CORR</button>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MODUL: HALAMAN UTAMA
+════════════════════════════════════════════ -->
+<div class="container">
+<div id="modul-utama" class="modul aktif">
+  <div class="hero">
+    <h2>Selamat Datang ke Sistem TMMC</h2>
+    <p>Sistem pengurusan kursus berasaskan OBE/KPT untuk membantu Penyelaras Kursus menyediakan CIST, item penilaian, dan laporan CQI/CORR dengan mudah.</p>
+  </div>
+  <div class="grid-kad-utama">
+    <div class="kad-modul" onclick="tunjukModul('cist', document.querySelectorAll('.nav button')[1])">
+      <div class="ikon">📋</div>
+      <h3>Pembina CIST</h3>
+      <p>Jana Coursework Item Specification Table (CIST) berdasarkan CLO secara automatik dan eksport ke Excel.</p>
+    </div>
+    <div class="kad-modul" onclick="tunjukModul('penilaian', document.querySelectorAll('.nav button')[2])">
+      <div class="ikon">📝</div>
+      <h3>Item Penilaian</h3>
+      <p>Urus bank soalan dan jana 4 set kertas soalan Kuiz/Ujian (2 utama + 2 sandaran) dalam format Word.</p>
+    </div>
+    <div class="kad-modul" onclick="tunjukModul('cqi', document.querySelectorAll('.nav button')[3])">
+      <div class="ikon">📊</div>
+      <h3>Laporan CQI/CORR</h3>
+      <p>Analisis pencapaian CLO pelajar, papar graf, dan jana laporan Continuous Quality Improvement.</p>
+    </div>
+  </div>
+
+  <div class="kad" style="margin-top:20px;">
+    <h2>🎯 Course Learning Outcomes (CLO) — DEM30043</h2>
+    <div class="jadual-wrapper">
+      <table>
+        <thead><tr><th>CLO</th><th>Pernyataan</th><th>Domain</th><th>Aras Bloom</th><th>Wajaran</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge badge-biru">CLO1</span></td><td>Menjelaskan prinsip asas penyelenggaraan komponen mekanikal</td><td>Kognitif</td><td>C2 — Memahami</td><td>20%</td></tr>
+          <tr><td><span class="badge badge-biru">CLO2</span></td><td>Menggunakan prosedur troubleshooting komponen mekanikal</td><td>Kognitif</td><td>C3 — Mengaplikasi</td><td>20%</td></tr>
+          <tr><td><span class="badge badge-biru">CLO3</span></td><td>Melaksanakan penyelenggaraan pencegahan komponen mekanikal</td><td>Psikomotor</td><td>P3 — Ketepatan</td><td>20%</td></tr>
+          <tr><td><span class="badge badge-biru">CLO4</span></td><td>Menganalisis punca kerosakan dan mencadangkan penyelesaian</td><td>Kognitif</td><td>C4 — Menganalisis</td><td>20%</td></tr>
+          <tr><td><span class="badge badge-biru">CLO5</span></td><td>Menunjukkan sikap profesional dan amalan keselamatan</td><td>Afektif</td><td>A3 — Penilaian</td><td>20%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MODUL 1: PEMBINA CIST
+════════════════════════════════════════════ -->
+<div id="modul-cist" class="modul">
+  <div class="kad">
+    <h2>📋 Langkah 1 — Tetapan Penilaian</h2>
+    <div class="grid-3">
+      <div class="field">
+        <label>Jenis Penilaian</label>
+        <select id="cist-jenis">
+          <option>Kuiz</option>
+          <option>Ujian</option>
+          <option>Peperiksaan Akhir</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Jumlah Soalan Keseluruhan</label>
+        <input type="number" id="cist-jum-soalan" value="20" min="1">
+      </div>
+      <div class="field">
+        <label>Jumlah Markah Keseluruhan</label>
+        <input type="number" id="cist-jum-markah" value="20" min="1">
+      </div>
+    </div>
+  </div>
+
+  <div class="kad">
+    <h2>📋 Langkah 2 — Tetapan Soalan Per CLO</h2>
+    <div id="cist-notif" class="notif"></div>
+    <div id="cist-clo-baris"></div>
+    <div style="background:var(--kelabu-latar);border-radius:8px;padding:12px;font-size:.85rem;margin-top:10px;">
+      <strong>Semakan:</strong>
+      Jumlah soalan: <span id="cist-check-soalan" style="font-weight:700;color:var(--biru)">0</span> /
+      <span id="cist-check-soalan-max">20</span> &nbsp;|&nbsp;
+      Jumlah markah: <span id="cist-check-markah" style="font-weight:700;color:var(--biru)">0</span> /
+      <span id="cist-check-markah-max">20</span>
+    </div>
+    <div class="baris-butang">
+      <button class="btn btn-utama" onclick="janaCIST()">🔄 Jana / Kemaskini CIST</button>
+    </div>
+  </div>
+
+  <div class="kad" id="cist-hasil" style="display:none">
+    <h2>📋 Pratonton CIST</h2>
+    <div class="grid-metrik" id="cist-metrik"></div>
+    <div class="jadual-wrapper">
+      <table id="cist-jadual">
+        <thead>
+          <tr>
+            <th>Bil</th><th>CLO</th><th>Pernyataan CLO</th><th>Domain</th>
+            <th>Aras Bloom</th><th>Jenis Soalan</th><th>Bil. Soalan</th>
+            <th>Markah/Soalan</th><th>Jumlah Markah</th><th>Wajaran (%)</th>
+          </tr>
+        </thead>
+        <tbody id="cist-badan"></tbody>
+        <tfoot id="cist-kaki"></tfoot>
+      </table>
+    </div>
+    <div class="baris-butang">
+      <button class="btn btn-hijau" onclick="eksportCISTExcel()">📥 Muat Turun CIST (.xlsx)</button>
+      <button class="btn btn-kelabu" onclick="simpanCIST()">💾 Simpan CIST</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MODUL 2: ITEM PENILAIAN
+════════════════════════════════════════════ -->
+<div id="modul-penilaian" class="modul">
+  <div class="sub-tab-nav">
+    <button class="sub-tab-btn aktif" onclick="tunjukSubTab('penilaian','bank',this)">📚 Bank Soalan</button>
+    <button class="sub-tab-btn" onclick="tunjukSubTab('penilaian','kuiz',this)">📝 Jana Set Kuiz</button>
+    <button class="sub-tab-btn" onclick="tunjukSubTab('penilaian','ujian',this)">📝 Jana Set Ujian</button>
+  </div>
+
+  <!-- Sub-tab: Bank Soalan -->
+  <div id="penilaian-bank" class="sub-tab aktif">
+    <div class="kad">
+      <h2>📚 Tambah Soalan Baharu</h2>
+      <div class="grid-2">
+        <div class="field">
+          <label>CLO</label>
+          <select id="soalan-clo" onchange="kemaskiniBloom()">
+            <option value="CLO1">CLO1 — Menjelaskan prinsip penyelenggaraan</option>
+            <option value="CLO2">CLO2 — Prosedur troubleshooting</option>
+            <option value="CLO3">CLO3 — Penyelenggaraan pencegahan</option>
+            <option value="CLO4">CLO4 — Analisis punca kerosakan</option>
+            <option value="CLO5">CLO5 — Sikap profesional &amp; keselamatan</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Aras Bloom (Auto)</label>
+          <input type="text" id="soalan-bloom" value="C2 — Memahami" readonly style="background:#f9fafb;">
+        </div>
+        <div class="field">
+          <label>Jenis Soalan</label>
+          <select id="soalan-jenis" onchange="togglePilihan()">
+            <option value="MCQ">MCQ (Pelbagai Pilihan)</option>
+            <option value="Berstruktur">Berstruktur</option>
+            <option value="Betul/Salah">Betul / Salah</option>
+            <option value="Esei">Esei Pendek</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Tahap Kesukaran</label>
+          <select id="soalan-susah">
+            <option>Mudah</option>
+            <option selected>Sederhana</option>
+            <option>Sukar</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" style="margin-top:10px;">
+        <label>Teks Soalan</label>
+        <textarea id="soalan-teks" rows="3" placeholder="Taip teks soalan di sini..."></textarea>
+      </div>
+      <div id="pilihan-mcq">
+        <div class="grid-2" style="margin-top:10px;">
+          <div class="field"><label>A)</label><input type="text" id="soalan-a" placeholder="Pilihan A"></div>
+          <div class="field"><label>B)</label><input type="text" id="soalan-b" placeholder="Pilihan B"></div>
+          <div class="field"><label>C)</label><input type="text" id="soalan-c" placeholder="Pilihan C"></div>
+          <div class="field"><label>D)</label><input type="text" id="soalan-d" placeholder="Pilihan D"></div>
+        </div>
+        <div class="field" style="margin-top:10px;">
+          <label>Jawapan Betul</label>
+          <select id="soalan-jwp"><option>A</option><option>B</option><option>C</option><option>D</option></select>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="field">
+          <label>Markah</label>
+          <input type="number" id="soalan-markah" value="1" min="0.5" step="0.5">
+        </div>
+        <div class="field">
+          <label>Topik</label>
+          <input type="text" id="soalan-topik" placeholder="cth: Bearing, Gear, Belt Drive...">
+        </div>
+      </div>
+      <div class="baris-butang">
+        <button class="btn btn-utama" onclick="tambahSoalan()">➕ Tambah ke Bank Soalan</button>
+        <button class="btn btn-kelabu" onclick="kosongkanFormSoalan()">🗑️ Kosongkan</button>
+      </div>
+    </div>
+
+    <div class="kad">
+      <h2>📚 Senarai Bank Soalan</h2>
+      <div class="grid-3" style="margin-bottom:12px;">
+        <div class="field">
+          <label>Tapis CLO</label>
+          <select id="filter-clo" onchange="paparBankSoalan()">
+            <option value="">Semua CLO</option>
+            <option value="CLO1">CLO1</option>
+            <option value="CLO2">CLO2</option>
+            <option value="CLO3">CLO3</option>
+            <option value="CLO4">CLO4</option>
+            <option value="CLO5">CLO5</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Tapis Jenis</label>
+          <select id="filter-jenis" onchange="paparBankSoalan()">
+            <option value="">Semua Jenis</option>
+            <option>MCQ</option>
+            <option>Berstruktur</option>
+            <option>Betul/Salah</option>
+            <option>Esei</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Tapis Kesukaran</label>
+          <select id="filter-susah" onchange="paparBankSoalan()">
+            <option value="">Semua</option>
+            <option>Mudah</option>
+            <option>Sederhana</option>
+            <option>Sukar</option>
+          </select>
+        </div>
+      </div>
+      <div id="notif-bank" class="notif"></div>
+      <div id="statistik-bank" style="margin-bottom:12px;"></div>
+      <div class="jadual-wrapper">
+        <table>
+          <thead><tr><th>#</th><th>CLO</th><th>Jenis</th><th>Teks Soalan</th><th>Kesukaran</th><th>Markah</th><th>Tindakan</th></tr></thead>
+          <tbody id="bank-badan"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sub-tab: Jana Kuiz -->
+  <div id="penilaian-kuiz" class="sub-tab">
+    <div class="kad">
+      <h2>📝 Jana Set Kuiz (4 Set)</h2>
+      <div class="grid-3">
+        <div class="field"><label>Masa (minit)</label><input type="number" id="kuiz-masa" value="30"></div>
+        <div class="field"><label>Markah Penuh</label><input type="number" id="kuiz-markah" value="20"></div>
+        <div class="field"><label>Tarikh Pentadbiran</label><input type="date" id="kuiz-tarikh"></div>
+      </div>
+      <div id="kuiz-config-clo" style="margin-top:14px;"></div>
+      <div class="baris-butang">
+        <button class="btn btn-utama" onclick="janaSemuaSet('Kuiz')">🎲 Jana 4 Set Kuiz</button>
+      </div>
+    </div>
+    <div id="hasil-kuiz"></div>
+  </div>
+
+  <!-- Sub-tab: Jana Ujian -->
+  <div id="penilaian-ujian" class="sub-tab">
+    <div class="kad">
+      <h2>📝 Jana Set Ujian (4 Set)</h2>
+      <div class="grid-3">
+        <div class="field"><label>Masa (minit)</label><input type="number" id="ujian-masa" value="60"></div>
+        <div class="field"><label>Markah Penuh</label><input type="number" id="ujian-markah" value="40"></div>
+        <div class="field"><label>Tarikh Pentadbiran</label><input type="date" id="ujian-tarikh"></div>
+      </div>
+      <div id="ujian-config-clo" style="margin-top:14px;"></div>
+      <div class="baris-butang">
+        <button class="btn btn-utama" onclick="janaSemuaSet('Ujian')">🎲 Jana 4 Set Ujian</button>
+      </div>
+    </div>
+    <div id="hasil-ujian"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MODUL 3: CQI / CORR
+════════════════════════════════════════════ -->
+<div id="modul-cqi" class="modul">
+  <div class="kad">
+    <h2>⚙️ Tetapan Threshold CQI</h2>
+    <div class="grid-2">
+      <div class="field">
+        <label>Threshold % Pelajar Lulus (default: 50%)</label>
+        <div class="slider-row">
+          <input type="range" id="thresh-pelajar" min="30" max="80" value="50" oninput="document.getElementById('thresh-pelajar-val').textContent=this.value+'%'">
+          <span class="slider-val" id="thresh-pelajar-val">50%</span>
+        </div>
+        <small style="color:var(--kelabu)">Minimum % pelajar yang perlu mencapai markah threshold</small>
+      </div>
+      <div class="field">
+        <label>Threshold % Markah Lulus (default: 50%)</label>
+        <div class="slider-row">
+          <input type="range" id="thresh-markah" min="30" max="80" value="50" oninput="document.getElementById('thresh-markah-val').textContent=this.value+'%'">
+          <span class="slider-val" id="thresh-markah-val">50%</span>
+        </div>
+        <small style="color:var(--kelabu)">Minimum % markah per CLO yang dikira sebagai lulus</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="kad">
+    <h2>📤 Input Data Markah Pelajar</h2>
+    <div class="notif notif-biru aktif" style="margin-bottom:12px;">
+      <strong>Format CSV diperlukan:</strong>
+      Student_ID, CLO1_marks, CLO1_max, CLO2_marks, CLO2_max, CLO3_marks, CLO3_max, CLO4_marks, CLO4_max, CLO5_marks, CLO5_max
+    </div>
+    <div class="baris-butang" style="margin-bottom:12px;">
+      <button class="btn btn-kelabu" onclick="muatTurunTemplateCQI()">📥 Muat Turun Template CSV</button>
+      <button class="btn btn-kelabu" onclick="gunaDataContoh()">📊 Guna Data Contoh (20 pelajar)</button>
+    </div>
+    <div class="field">
+      <label>Upload Fail CSV / Excel</label>
+      <input type="file" id="cqi-fail" accept=".csv,.xlsx,.xls" onchange="uploadDataMarkah(this)" style="padding:6px;">
+    </div>
+    <div id="cqi-pratonton" style="margin-top:12px;"></div>
+    <div class="baris-butang">
+      <button class="btn btn-utama" onclick="analisisCQI()">🔍 Analisis Pencapaian CLO</button>
+    </div>
+  </div>
+
+  <div id="cqi-hasil" style="display:none">
+    <div class="grid-metrik" id="cqi-metrik"></div>
+
+    <div class="kad">
+      <h2>📊 Graf Pencapaian CLO</h2>
+      <div class="grid-2">
+        <div class="graf-wrapper"><canvas id="graf-bar"></canvas></div>
+        <div class="graf-wrapper"><canvas id="graf-pai"></canvas></div>
+      </div>
+    </div>
+
+    <div class="kad">
+      <h2>📋 Jadual CORR (Course Outcome Review Report)</h2>
+      <div class="jadual-wrapper">
+        <table id="corr-jadual">
+          <thead><tr><th>CLO</th><th>Pernyataan CLO</th><th>Target (%)</th><th>Pencapaian Sebenar (%)</th><th>Status</th><th>Perbezaan (%)</th></tr></thead>
+          <tbody id="corr-badan"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="kad" id="cqi-tindakan-kad">
+      <h2>🛠️ Tindakan CQI yang Dicadangkan</h2>
+      <div id="cqi-tindakan"></div>
+    </div>
+
+    <div class="kad">
+      <h2>📥 Eksport Laporan</h2>
+      <div class="baris-butang">
+        <button class="btn btn-hijau" onclick="eksportCQIExcel()">📥 Eksport ke Excel (.xlsx)</button>
+        <button class="btn btn-utama" onclick="cetakLaporan()">🖨️ Cetak / Simpan PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<!-- ═══════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════ -->
+<script>
+// ══════════════════════════════════════════════
+// DATA GLOBAL
+// ══════════════════════════════════════════════
+const CLO_DATA = [
+  { id:'CLO1', ringkas:'Menjelaskan prinsip penyelenggaraan komponen mekanikal', domain:'Kognitif', bloom:'C2', bloom_label:'Memahami (Understand)', wajaran:20, kaedah:['Kuiz','Ujian','Peperiksaan Akhir'], topik:['Bearing','Gear','Belt Drive','Pengedap','Pelinciran'] },
+  { id:'CLO2', ringkas:'Menggunakan prosedur troubleshooting komponen mekanikal', domain:'Kognitif', bloom:'C3', bloom_label:'Mengaplikasi (Apply)', wajaran:20, kaedah:['Kuiz','Ujian','Peperiksaan Akhir'], topik:['Prosedur Troubleshooting','Diagnosis Bearing','Diagnosis Gear','Masalah Belt','Kegagalan Pengedap'] },
+  { id:'CLO3', ringkas:'Melaksanakan penyelenggaraan pencegahan komponen mekanikal', domain:'Psikomotor', bloom:'P3', bloom_label:'Ketepatan (Precision)', wajaran:20, kaedah:['Tugasan Amali','Projek'], topik:['PM Bearing','Penyelarasan Gear','Ketegangan Belt','Penggantian Pengedap','Prosedur Pelinciran'] },
+  { id:'CLO4', ringkas:'Menganalisis punca kerosakan dan mencadangkan penyelesaian', domain:'Kognitif', bloom:'C4', bloom_label:'Menganalisis (Analyse)', wajaran:20, kaedah:['Ujian','Projek','Peperiksaan Akhir'], topik:['RCA','Fishbone/Ishikawa','Analisis 5-Why','Laporan Teknikal','Cadangan Pembaikan'] },
+  { id:'CLO5', ringkas:'Menunjukkan sikap profesional dan amalan keselamatan', domain:'Afektif', bloom:'A3', bloom_label:'Penilaian (Valuing)', wajaran:20, kaedah:['Tugasan Amali','Projek','Pemerhatian'], topik:['PPE','LOTO','Etika Profesional','Kerja Berpasukan','Laporan Teknikal'] }
+];
+
+const BLOOM_MAP = { CLO1:'C2 — Memahami', CLO2:'C3 — Mengaplikasi', CLO3:'P3 — Ketepatan', CLO4:'C4 — Menganalisis', CLO5:'A3 — Penilaian (Valuing)' };
+
+// Bank soalan dalam memori (dimuatkan dari localStorage)
+let bankSoalan = JSON.parse(localStorage.getItem('tmmc_bank') || '[]');
+// CIST yang disimpan
+let cistTersimpan = JSON.parse(localStorage.getItem('tmmc_cist') || 'null');
+// Data markah CQI
+let dataCQI = [];
+// Graf Chart.js
+let grafBar = null, grafPai = null;
+
+// ── Seed soalan contoh jika bank kosong ──
+if (bankSoalan.length === 0) {
+  bankSoalan = genarSoalanContoh();
+  simpanBank();
+}
+
+function genarSoalanContoh() {
+  return [
+    // CLO1
+    {id:1,clo:'CLO1',bloom:'C2',jenis:'MCQ',teks:'Apakah fungsi utama bearing dalam sistem mekanikal?',a:'Menambah geseran antara aci dan rumah',b:'Mengurangkan geseran dan menyokong beban putar',c:'Menghalang putaran aci',d:'Menggantikan pelinciran',jwp:'B',markah:1,susah:'Mudah',topik:'Bearing'},
+    {id:2,clo:'CLO1',bloom:'C2',jenis:'MCQ',teks:'Apakah jenis pelincir yang sesuai digunakan untuk bearing berkelajuan tinggi?',a:'Gris tebal',b:'Minyak pelincir cair',c:'Air',d:'Habuk grafit',jwp:'B',markah:1,susah:'Sederhana',topik:'Pelinciran'},
+    {id:3,clo:'CLO1',bloom:'C2',jenis:'MCQ',teks:'Apakah maksud "Preventive Maintenance" (PM)?',a:'Pembaikan selepas kerosakan berlaku',b:'Penyelenggaraan berjadual untuk mencegah kerosakan',c:'Penggantian komponen secara rawak',d:'Pemeriksaan selepas kemalangan',jwp:'B',markah:1,susah:'Mudah',topik:'PM'},
+    {id:4,clo:'CLO1',bloom:'C2',jenis:'Berstruktur',teks:'Nyatakan DUA (2) jenis bearing yang biasa digunakan dalam industri dan terangkan kegunaannya.',a:'',b:'',c:'',d:'',jwp:'',markah:4,susah:'Sederhana',topik:'Bearing'},
+    {id:5,clo:'CLO1',bloom:'C2',jenis:'Betul/Salah',teks:'Belt drive digunakan untuk memindahkan kuasa antara dua syaf yang berjauhan.',a:'',b:'',c:'',d:'',jwp:'Betul',markah:1,susah:'Mudah',topik:'Belt Drive'},
+    {id:6,clo:'CLO1',bloom:'C2',jenis:'MCQ',teks:'Komponen manakah yang berfungsi sebagai pengedap untuk mencegah kebocoran cecair?',a:'Bearing',b:'Gear',c:'Oil Seal',d:'Belt',jwp:'C',markah:1,susah:'Mudah',topik:'Pengedap'},
+    // CLO2
+    {id:7,clo:'CLO2',bloom:'C3',jenis:'MCQ',teks:'Semasa troubleshooting, langkah pertama yang perlu dilakukan ialah?',a:'Tukar komponen baharu',b:'Mengenal pasti simptom dan mengumpul maklumat',c:'Menutup sistem serta-merta',d:'Hubungi pengilang',jwp:'B',markah:1,susah:'Mudah',topik:'Prosedur Troubleshooting'},
+    {id:8,clo:'CLO2',bloom:'C3',jenis:'MCQ',teks:'Bunyi bising "grinding" pada bearing menunjukkan?',a:'Pelinciran berlebihan',b:'Kerosakan atau hakisan pada ball/race',c:'Kelajuan terlalu rendah',d:'Suhu terlalu sejuk',jwp:'B',markah:1,susah:'Sederhana',topik:'Diagnosis Bearing'},
+    {id:9,clo:'CLO2',bloom:'C3',jenis:'MCQ',teks:'Belt yang bergelombang dan tidak rata menunjukkan masalah?',a:'Tekanan terlalu tinggi',b:'Kepingan belt longgar atau salah penjajaran (misalignment)',c:'Belt terlalu baru',d:'Suhu terlalu tinggi',jwp:'B',markah:1,susah:'Sederhana',topik:'Masalah Belt'},
+    {id:10,clo:'CLO2',bloom:'C3',jenis:'Berstruktur',teks:'Terangkan prosedur sistematik untuk mengesan kerosakan pada gear system. Sertakan sekurang-kurangnya TIGA (3) langkah.',a:'',b:'',c:'',d:'',jwp:'',markah:6,susah:'Sukar',topik:'Diagnosis Gear'},
+    {id:11,clo:'CLO2',bloom:'C3',jenis:'Betul/Salah',teks:'Penggunaan thermografi inframerah boleh digunakan untuk mengesan panas berlebihan pada bearing.',a:'',b:'',c:'',d:'',jwp:'Betul',markah:1,susah:'Sederhana',topik:'Diagnosis Bearing'},
+    {id:12,clo:'CLO2',bloom:'C3',jenis:'MCQ',teks:'Apakah kaedah yang paling sesuai untuk mengesan masalah gear wear?',a:'Ujian bunyi',b:'Ujian getaran dan analisis minyak pelincir',c:'Ujian suhu bilik',d:'Ujian beban statik',jwp:'B',markah:1,susah:'Sukar',topik:'Diagnosis Gear'},
+    // CLO3
+    {id:13,clo:'CLO3',bloom:'P3',jenis:'MCQ',teks:'Semasa memasang bearing baharu, apakah prosedur yang BETUL?',a:'Ketuk bearing dengan tukul besi secara langsung',b:'Panaskan bearing dalam minyak (80-90°C) sebelum pasang pada aci',c:'Pegang bahagian dalam bearing dengan tangan',d:'Pasang bearing dalam keadaan sejuk dengan ketukan keras',jwp:'B',markah:1,susah:'Sederhana',topik:'PM Bearing'},
+    {id:14,clo:'CLO3',bloom:'P3',jenis:'MCQ',teks:'Berapa kerapkah pemeriksaan ketegangan belt perlu dilakukan dalam persekitaran industri biasa?',a:'Sekali setahun',b:'Setiap 3-6 bulan atau mengikut jadual PM',c:'Hanya apabila belt putus',d:'Setiap hari',jwp:'B',markah:1,susah:'Mudah',topik:'Ketegangan Belt'},
+    {id:15,clo:'CLO3',bloom:'P3',jenis:'Berstruktur',teks:'Huraikan prosedur langkah demi langkah untuk menggantikan oil seal pada motor hidraulik. Sertakan peralatan yang diperlukan.',a:'',b:'',c:'',d:'',jwp:'',markah:8,susah:'Sukar',topik:'Penggantian Pengedap'},
+    {id:16,clo:'CLO3',bloom:'P3',jenis:'MCQ',teks:'Apakah tujuan penyelarasan (alignment) pada sistem gear dan shaft?',a:'Menambah berat sistem',b:'Mengurangkan getaran, haba, dan haus komponen',c:'Meningkatkan bunyi operasi',d:'Memperlahankan kelajuan',jwp:'B',markah:1,susah:'Sederhana',topik:'Penyelarasan Gear'},
+    {id:17,clo:'CLO3',bloom:'P3',jenis:'Betul/Salah',teks:'Gris yang berlebihan dalam bearing boleh menyebabkan berlakunya churning dan peningkatan suhu.',a:'',b:'',c:'',d:'',jwp:'Betul',markah:1,susah:'Sederhana',topik:'Pelinciran'},
+    {id:18,clo:'CLO3',bloom:'P3',jenis:'MCQ',teks:'Apakah alat yang digunakan untuk memeriksa penjajaran (alignment) pulley belt drive?',a:'Vennier caliper',b:'Straight edge atau laser alignment tool',c:'Multimeter',d:'Thermometer',jwp:'B',markah:1,susah:'Sederhana',topik:'Ketegangan Belt'},
+    // CLO4
+    {id:19,clo:'CLO4',bloom:'C4',jenis:'MCQ',teks:'Kaedah "5-Why Analysis" digunakan untuk?',a:'Mengira kos pembaikan',b:'Mengesan punca akar (root cause) sesuatu masalah',c:'Merancang jadual penyelenggaraan',d:'Menganggar jangka hayat komponen',jwp:'B',markah:1,susah:'Sederhana',topik:'Analisis 5-Why'},
+    {id:20,clo:'CLO4',bloom:'C4',jenis:'MCQ',teks:'Dalam Fishbone Diagram (Ishikawa), apakah kategori utama punca masalah yang biasa digunakan?',a:'Man, Machine, Method, Material, Environment, Measurement',b:'Cost, Time, Quality, Safety',c:'Input, Process, Output',d:'Plan, Do, Check, Act',jwp:'A',markah:1,susah:'Sederhana',topik:'Fishbone/Ishikawa'},
+    {id:21,clo:'CLO4',bloom:'C4',jenis:'Berstruktur',teks:'Bearing pada sebuah motor elektrik mengalami kegagalan berulang setiap 3 bulan. Gunakan kaedah 5-Why Analysis untuk mengenal pasti punca akar masalah ini.',a:'',b:'',c:'',d:'',jwp:'',markah:10,susah:'Sukar',topik:'Analisis 5-Why'},
+    {id:22,clo:'CLO4',bloom:'C4',jenis:'MCQ',teks:'Apakah kandungan utama dalam laporan Root Cause Analysis (RCA)?',a:'Hanya gambar kerosakan',b:'Penerangan masalah, timeline, punca akar, tindakan pembaikan dan pencegahan',c:'Senarai kos sahaja',d:'Nama juruteknik yang bertugas',jwp:'B',markah:1,susah:'Sederhana',topik:'Laporan Teknikal'},
+    {id:23,clo:'CLO4',bloom:'C4',jenis:'Betul/Salah',teks:'Root Cause Analysis (RCA) bertujuan untuk mencegah keberulangan masalah yang sama.',a:'',b:'',c:'',d:'',jwp:'Betul',markah:1,susah:'Mudah',topik:'RCA'},
+    {id:24,clo:'CLO4',bloom:'C4',jenis:'MCQ',teks:'Selepas menjalankan RCA dan mengenal pasti punca akar, apakah langkah seterusnya?',a:'Tutup fail laporan',b:'Laksanakan tindakan pembaikan dan pantau keberkesanannya',c:'Tukar semua komponen',d:'Laporan kepada polis',jwp:'B',markah:1,susah:'Mudah',topik:'Cadangan Pembaikan'},
+    // CLO5
+    {id:25,clo:'CLO5',bloom:'A3',jenis:'MCQ',teks:'Apakah maksud prosedur LOTO (Lockout/Tagout)?',a:'Prosedur untuk membuka kunci mesin',b:'Prosedur keselamatan untuk memastikan mesin tidak boleh dihidupkan semasa kerja penyelenggaraan',c:'Prosedur untuk menutup kilang',d:'Prosedur pencatatan waktu kerja',jwp:'B',markah:1,susah:'Mudah',topik:'LOTO'},
+    {id:26,clo:'CLO5',bloom:'A3',jenis:'MCQ',teks:'PPE (Personal Protective Equipment) yang WAJIB dipakai semasa kerja penyelenggaraan mekanikal termasuk?',a:'Helmet, sarung tangan, kasut keselamatan, cermin mata keselamatan',b:'Topi biasa dan kasut sukan',c:'Baju makmal sahaja',d:'Tiada PPE diperlukan',jwp:'A',markah:1,susah:'Mudah',topik:'PPE'},
+    {id:27,clo:'CLO5',bloom:'A3',jenis:'Berstruktur',teks:'Terangkan kepentingan prosedur LOTO dan nyatakan langkah-langkah pelaksanaannya dalam kerja penyelenggaraan.',a:'',b:'',c:'',d:'',jwp:'',markah:6,susah:'Sederhana',topik:'LOTO'},
+    {id:28,clo:'CLO5',bloom:'A3',jenis:'MCQ',teks:'Apakah tindakan yang perlu diambil jika seorang pekerja menemui tumpahan minyak di lantai bengkel?',a:'Biarkan sahaja',b:'Bersihkan segera menggunakan absorbent material dan lapor kepada penyelia',c:'Tutup dengan kain buruk',d:'Siram dengan air',jwp:'B',markah:1,susah:'Mudah',topik:'Keselamatan'},
+    {id:29,clo:'CLO5',bloom:'A3',jenis:'Betul/Salah',teks:'Setiap kemalangan atau kejadian hampir kemalangan (near miss) perlu dilaporkan kepada penyelia.',a:'',b:'',c:'',d:'',jwp:'Betul',markah:1,susah:'Mudah',topik:'Etika Profesional'},
+    {id:30,clo:'CLO5',bloom:'A3',jenis:'MCQ',teks:'Apakah nilai profesional yang perlu ada pada seorang juruteknik penyelenggaraan?',a:'Hanya mementingkan kelajuan kerja',b:'Bertanggungjawab, jujur, berdisiplin, dan mengutamakan keselamatan',c:'Mengelak dari laporan kerosakan',d:'Bekerja tanpa mengikut prosedur',jwp:'B',markah:1,susah:'Mudah',topik:'Etika Profesional'}
+  ];
+}
+
+// ══════════════════════════════════════════════
+// NAVIGASI
+// ══════════════════════════════════════════════
+function tunjukModul(id, btn) {
+  document.querySelectorAll('.modul').forEach(m => m.classList.remove('aktif'));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('aktif'));
+  document.getElementById('modul-' + id).classList.add('aktif');
+  if (btn) btn.classList.add('aktif');
+  if (id === 'penilaian') { mulaMulaPenilaian(); }
+  if (id === 'cist') { mulaModulCIST(); }
+}
+
+function tunjukSubTab(modul, tab, btn) {
+  document.querySelectorAll('#modul-' + modul + ' .sub-tab').forEach(t => t.classList.remove('aktif'));
+  document.querySelectorAll('#modul-' + modul + ' .sub-tab-btn').forEach(b => b.classList.remove('aktif'));
+  document.getElementById(modul + '-' + tab).classList.add('aktif');
+  btn.classList.add('aktif');
+}
+
+// ══════════════════════════════════════════════
+// MODUL 1: CIST BUILDER
+// ══════════════════════════════════════════════
+function mulaModulCIST() {
+  renderCISTCLOBaris();
+}
+
+function renderCISTCLOBaris() {
+  const jenis = document.getElementById('cist-jenis').value;
+  const container = document.getElementById('cist-clo-baris');
+  const jumSoalan = parseInt(document.getElementById('cist-jum-soalan').value) || 20;
+  const jumMarkah = parseInt(document.getElementById('cist-jum-markah').value) || 20;
+
+  // Tapis CLO mengikut jenis penilaian
+  const cloTersedia = CLO_DATA.filter(c => {
+    if (jenis === 'Kuiz') return c.kaedah.includes('Kuiz');
+    if (jenis === 'Ujian') return c.kaedah.includes('Ujian');
+    return true;
+  });
+
+  let html = '';
+  const soalanPerCLO = Math.floor(jumSoalan / cloTersedia.length);
+  const markahPerCLO = parseFloat((jumMarkah / cloTersedia.length).toFixed(1));
+
+  cloTersedia.forEach(clo => {
+    html += `
+    <div class="clo-baris">
+      <h4>${clo.id} — ${clo.ringkas} <span class="badge badge-biru">${clo.bloom} ${clo.bloom_label}</span></h4>
+      <div class="grid-3">
+        <div class="field">
+          <label>Jenis Soalan</label>
+          <select id="cist-${clo.id}-jenis" onchange="kemaskiniSemakan()">
+            <option value="MCQ">MCQ</option>
+            <option value="Berstruktur">Berstruktur</option>
+            <option value="Betul/Salah">Betul / Salah</option>
+            <option value="Campuran">Campuran (MCQ + Berstruktur)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Bilangan Soalan</label>
+          <input type="number" id="cist-${clo.id}-soalan" value="${soalanPerCLO}" min="1" oninput="kemaskiniSemakan()">
+        </div>
+        <div class="field">
+          <label>Markah / Soalan</label>
+          <input type="number" id="cist-${clo.id}-markah" value="${markahPerCLO}" min="0.5" step="0.5" oninput="kemaskiniSemakan()">
+        </div>
+      </div>
+    </div>`;
+  });
+  container.innerHTML = html;
+  kemaskiniSemakan();
+}
+
+document.getElementById('cist-jenis').addEventListener('change', renderCISTCLOBaris);
+document.getElementById('cist-jum-soalan').addEventListener('input', function() {
+  document.getElementById('cist-check-soalan-max').textContent = this.value;
+  kemaskiniSemakan();
+});
+document.getElementById('cist-jum-markah').addEventListener('input', function() {
+  document.getElementById('cist-check-markah-max').textContent = this.value;
+  kemaskiniSemakan();
+});
+
+function kemaskiniSemakan() {
+  let jSoalan = 0, jMarkah = 0;
+  const jenis = document.getElementById('cist-jenis').value;
+  const cloTersedia = CLO_DATA.filter(c => {
+    if (jenis === 'Kuiz') return c.kaedah.includes('Kuiz');
+    if (jenis === 'Ujian') return c.kaedah.includes('Ujian');
+    return true;
+  });
+  cloTersedia.forEach(clo => {
+    const s = parseInt(document.getElementById('cist-' + clo.id + '-soalan')?.value) || 0;
+    const m = parseFloat(document.getElementById('cist-' + clo.id + '-markah')?.value) || 0;
+    jSoalan += s;
+    jMarkah += s * m;
+  });
+  document.getElementById('cist-check-soalan').textContent = jSoalan;
+  document.getElementById('cist-check-markah').textContent = jMarkah.toFixed(1);
+
+  const maxSoalan = parseInt(document.getElementById('cist-jum-soalan').value) || 20;
+  const maxMarkah = parseInt(document.getElementById('cist-jum-markah').value) || 20;
+  document.getElementById('cist-check-soalan').style.color = jSoalan === maxSoalan ? 'green' : 'red';
+  document.getElementById('cist-check-markah').style.color = Math.abs(jMarkah - maxMarkah) < 0.1 ? 'green' : 'red';
+}
+
+function janaCIST() {
+  const jenis = document.getElementById('cist-jenis').value;
+  const cloTersedia = CLO_DATA.filter(c => {
+    if (jenis === 'Kuiz') return c.kaedah.includes('Kuiz');
+    if (jenis === 'Ujian') return c.kaedah.includes('Ujian');
+    return true;
+  });
+
+  // Kumpul data
+  let rows = [];
+  let jMarkahTotal = 0;
+  cloTersedia.forEach(clo => {
+    const s = parseInt(document.getElementById('cist-' + clo.id + '-soalan')?.value) || 0;
+    const m = parseFloat(document.getElementById('cist-' + clo.id + '-markah')?.value) || 0;
+    const jn = document.getElementById('cist-' + clo.id + '-jenis')?.value || 'MCQ';
+    jMarkahTotal += s * m;
+    rows.push({ clo, jenis: jn, bil: s, markah: m });
+  });
+
+  // Render jadual
+  const tbody = document.getElementById('cist-badan');
+  const tfoot = document.getElementById('cist-kaki');
+  let html = '', bil = 1, jBilSoalan = 0, jJumlahMarkah = 0;
+
+  rows.forEach(r => {
+    const jumlah = r.bil * r.markah;
+    const wajaran = jMarkahTotal > 0 ? ((jumlah / jMarkahTotal) * 100).toFixed(1) : 0;
+    jBilSoalan += r.bil;
+    jJumlahMarkah += jumlah;
+    html += `<tr>
+      <td>${bil++}</td>
+      <td><span class="badge badge-biru">${r.clo.id}</span></td>
+      <td style="max-width:220px;font-size:.82rem;">${r.clo.ringkas}</td>
+      <td>${r.clo.domain}</td>
+      <td>${r.clo.bloom} — ${r.clo.bloom_label}</td>
+      <td>${r.jenis}</td>
+      <td style="text-align:center">${r.bil}</td>
+      <td style="text-align:center">${r.markah}</td>
+      <td style="text-align:center">${jumlah.toFixed(1)}</td>
+      <td style="text-align:center">${wajaran}%</td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+  tfoot.innerHTML = `<tr><td colspan="6"><strong>JUMLAH</strong></td><td style="text-align:center"><strong>${jBilSoalan}</strong></td><td></td><td style="text-align:center"><strong>${jJumlahMarkah.toFixed(1)}</strong></td><td style="text-align:center"><strong>100%</strong></td></tr>`;
+
+  // Metrik
+  document.getElementById('cist-metrik').innerHTML = `
+    <div class="metrik"><div class="nilai">${jBilSoalan}</div><div class="label">Jumlah Soalan</div></div>
+    <div class="metrik"><div class="nilai">${jJumlahMarkah.toFixed(0)}</div><div class="label">Jumlah Markah</div></div>
+    <div class="metrik"><div class="nilai">${cloTersedia.length}</div><div class="label">Bilangan CLO</div></div>
+    <div class="metrik"><div class="nilai">100%</div><div class="label">Jumlah Wajaran</div></div>`;
+
+  document.getElementById('cist-hasil').style.display = 'block';
+  tunjukNotif('cist-notif', '✅ CIST berjaya dijana!', 'hijau');
+}
+
+function simpanCIST() {
+  cistTersimpan = { jenis: document.getElementById('cist-jenis').value, tarikh: new Date().toLocaleDateString('ms-MY') };
+  localStorage.setItem('tmmc_cist', JSON.stringify(cistTersimpan));
+  tunjukNotif('cist-notif', '💾 CIST telah disimpan!', 'hijau');
+}
+
+function eksportCISTExcel() {
+  const table = document.getElementById('cist-jadual');
+  if (!table || !table.querySelector('tbody tr')) { alert('Sila jana CIST dahulu.'); return; }
+
+  const jenis = document.getElementById('cist-jenis').value;
+  const wb = XLSX.utils.book_new();
+  const ws_data = [
+    ['COURSEWORK ITEM SPECIFICATION TABLE (CIST)'],
+    ['Politeknik Malaysia — Jabatan Kejuruteraan Mekanikal'],
+    ['Kod Kursus: DEM30043', '', 'Nama Kursus: Troubleshooting & Maintenance for Mechanical Components'],
+    ['Jenis Penilaian: ' + jenis, '', 'Tarikh: ' + new Date().toLocaleDateString('ms-MY')],
+    [],
+    ['Bil','CLO','Pernyataan CLO','Domain','Aras Bloom','Jenis Soalan','Bil. Soalan','Markah/Soalan','Jumlah Markah','Wajaran (%)']
+  ];
+
+  table.querySelectorAll('tbody tr').forEach(tr => {
+    const cells = Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim());
+    ws_data.push(cells);
+  });
+
+  // Baris jumlah
+  const tfoot = table.querySelector('tfoot tr');
+  if (tfoot) {
+    const fcells = Array.from(tfoot.querySelectorAll('td')).map(td => td.textContent.trim());
+    ws_data.push(fcells);
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  ws['!cols'] = [5,8,35,12,18,14,10,12,12,10].map(w => ({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws, 'CIST');
+  XLSX.writeFile(wb, `CIST_DEM30043_${jenis}_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ══════════════════════════════════════════════
+// MODUL 2: ITEM PENILAIAN
+// ══════════════════════════════════════════════
+function mulaMulaPenilaian() {
+  paparBankSoalan();
+  renderConfigCLO('kuiz');
+  renderConfigCLO('ujian');
+}
+
+function kemaskiniBloom() {
+  const clo = document.getElementById('soalan-clo').value;
+  document.getElementById('soalan-bloom').value = BLOOM_MAP[clo] || '';
+}
+
+function togglePilihan() {
+  const jenis = document.getElementById('soalan-jenis').value;
+  document.getElementById('pilihan-mcq').style.display = (jenis === 'MCQ' || jenis === 'Betul/Salah') ? 'block' : 'none';
+  if (jenis === 'Betul/Salah') {
+    document.getElementById('soalan-a').value = 'Betul';
+    document.getElementById('soalan-b').value = 'Salah';
+    document.getElementById('soalan-c').value = '';
+    document.getElementById('soalan-d').value = '';
+  }
+}
+
+function tambahSoalan() {
+  const teks = document.getElementById('soalan-teks').value.trim();
+  if (!teks) { alert('Sila masukkan teks soalan.'); return; }
+
+  const s = {
+    id: Date.now(),
+    clo: document.getElementById('soalan-clo').value,
+    bloom: document.getElementById('soalan-bloom').value.split(' — ')[0],
+    jenis: document.getElementById('soalan-jenis').value,
+    teks,
+    a: document.getElementById('soalan-a').value,
+    b: document.getElementById('soalan-b').value,
+    c: document.getElementById('soalan-c').value,
+    d: document.getElementById('soalan-d').value,
+    jwp: document.getElementById('soalan-jwp').value,
+    markah: parseFloat(document.getElementById('soalan-markah').value) || 1,
+    susah: document.getElementById('soalan-susah').value,
+    topik: document.getElementById('soalan-topik').value
+  };
+  bankSoalan.push(s);
+  simpanBank();
+  paparBankSoalan();
+  kosongkanFormSoalan();
+  tunjukNotif('notif-bank', '✅ Soalan berjaya ditambah ke bank soalan!', 'hijau');
+}
+
+function kosongkanFormSoalan() {
+  ['soalan-teks','soalan-a','soalan-b','soalan-c','soalan-d','soalan-topik'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('soalan-markah').value = '1';
+}
+
+function padamSoalan(id) {
+  if (!confirm('Padam soalan ini?')) return;
+  bankSoalan = bankSoalan.filter(s => s.id != id);
+  simpanBank();
+  paparBankSoalan();
+}
+
+function simpanBank() {
+  localStorage.setItem('tmmc_bank', JSON.stringify(bankSoalan));
+}
+
+function paparBankSoalan() {
+  const fCLO = document.getElementById('filter-clo')?.value || '';
+  const fJenis = document.getElementById('filter-jenis')?.value || '';
+  const fSusah = document.getElementById('filter-susah')?.value || '';
+
+  let filtered = bankSoalan.filter(s =>
+    (!fCLO || s.clo === fCLO) &&
+    (!fJenis || s.jenis === fJenis) &&
+    (!fSusah || s.susah === fSusah)
+  );
+
+  // Statistik
+  const statHtml = CLO_DATA.map(c => {
+    const n = bankSoalan.filter(s => s.clo === c.id).length;
+    return `<span class="badge badge-biru" style="margin:2px;">${c.id}: ${n} soalan</span>`;
+  }).join(' ');
+  const statEl = document.getElementById('statistik-bank');
+  if (statEl) statEl.innerHTML = '<div style="margin-bottom:8px;">' + statHtml + `</div><small style="color:var(--kelabu)">Jumlah dalam bank: <strong>${bankSoalan.length}</strong> soalan</small>`;
+
+  const tbody = document.getElementById('bank-badan');
+  if (!tbody) return;
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--kelabu);padding:20px;">Tiada soalan dijumpai.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = filtered.map((s, i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td><span class="badge badge-biru">${s.clo}</span></td>
+      <td><span class="badge badge-kelabu">${s.jenis}</span></td>
+      <td style="max-width:280px;font-size:.82rem;">${s.teks.substring(0,80)}${s.teks.length>80?'...':''}</td>
+      <td><span class="badge ${s.susah==='Mudah'?'badge-hijau':s.susah==='Sukar'?'badge-merah':'badge-kuning'}">${s.susah}</span></td>
+      <td>${s.markah}</td>
+      <td><button class="btn btn-merah btn-kecil" onclick="padamSoalan(${s.id})">🗑️</button></td>
+    </tr>`).join('');
+
+  // Badge untuk filter-jenis dalam jadual
+  document.querySelectorAll('.badge-kelabu').forEach(b => {
+    b.style.background='var(--kelabu-latar)';b.style.color='#374151';
+  });
+}
+
+function renderConfigCLO(jenis) {
+  const el = document.getElementById(jenis + '-config-clo');
+  if (!el) return;
+  let html = '<h4 style="margin-bottom:10px;color:var(--biru);">Tetapkan Bilangan Soalan per CLO</h4>';
+  CLO_DATA.forEach(clo => {
+    html += `
+    <div class="clo-baris" style="margin-bottom:8px;">
+      <div class="grid-3" style="align-items:center;">
+        <div><strong>${clo.id}</strong> <span style="font-size:.78rem;color:var(--kelabu);">${clo.ringkas}</span></div>
+        <div class="field">
+          <label>Bil. Soalan</label>
+          <input type="number" id="${jenis}-${clo.id}-soalan" value="4" min="0">
+        </div>
+        <div class="field">
+          <label>Jenis Soalan</label>
+          <select id="${jenis}-${clo.id}-jenis">
+            <option value="MCQ">MCQ</option>
+            <option value="Berstruktur">Berstruktur</option>
+            <option value="Betul/Salah">Betul/Salah</option>
+            <option value="Semua">Semua Jenis</option>
+          </select>
+        </div>
+      </div>
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+function janaSemuaSet(jenisAss) {
+  const prefix = jenisAss.toLowerCase() === 'kuiz' ? 'kuiz' : 'ujian';
+  const masa = document.getElementById(prefix + '-masa').value;
+  const markahPenuh = document.getElementById(prefix + '-markah').value;
+  const tarikh = document.getElementById(prefix + '-tarikh').value;
+
+  // Kumpul config
+  const config = CLO_DATA.map(clo => ({
+    clo_id: clo.id,
+    bil: parseInt(document.getElementById(prefix + '-' + clo.id + '-soalan')?.value) || 0,
+    jenis: document.getElementById(prefix + '-' + clo.id + '-jenis')?.value || 'MCQ'
+  })).filter(c => c.bil > 0);
+
+  const semuaSet = [];
+  const digunakanIds = new Set();
+
+  for (let i = 1; i <= 4; i++) {
+    const setIni = { nama: i <= 2 ? `Set ${i} (Utama)` : `Set ${i-2} (Sandaran)`, soalan: [], error: [] };
+
+    config.forEach(c => {
+      let calon = bankSoalan.filter(s =>
+        s.clo === c.clo_id &&
+        (c.jenis === 'Semua' || s.jenis === c.jenis) &&
+        !digunakanIds.has(s.id)
+      );
+
+      // Jika tidak cukup soalan tanpa pertindihan, guna soalan yang ada
+      if (calon.length < c.bil) {
+        const tambahan = bankSoalan.filter(s => s.clo === c.clo_id && (c.jenis === 'Semua' || s.jenis === c.jenis));
+        calon = tambahan;
+        if (calon.length < c.bil) {
+          setIni.error.push(`⚠️ ${c.clo_id}: Hanya ${calon.length} soalan tersedia (${c.bil} diperlukan)`);
+        }
+      }
+
+      // Pilih secara rawak
+      const dicampur = calon.sort(() => Math.random() - 0.5).slice(0, c.bil);
+      dicampur.forEach(s => digunakanIds.add(s.id));
+      setIni.soalan.push(...dicampur);
+    });
+
+    semuaSet.push(setIni);
+  }
+
+  // Render hasil
+  const elHasil = document.getElementById('hasil-' + prefix);
+  let html = '';
+  semuaSet.forEach((set, idx) => {
+    const label = idx < 2 ? `badge-biru` : `badge-kuning`;
+    html += `
+    <div class="kad">
+      <h2>📝 ${set.nama} <span class="badge ${label}">${jenisAss}</span></h2>
+      <div style="font-size:.82rem;color:var(--kelabu);margin-bottom:10px;">
+        Masa: ${masa} minit &nbsp;|&nbsp; Markah Penuh: ${markahPenuh} &nbsp;|&nbsp; Tarikh: ${tarikh||'—'} &nbsp;|&nbsp; Jumlah Soalan: ${set.soalan.length}
+      </div>
+      ${set.error.map(e=>`<div class="notif notif-merah aktif" style="margin-bottom:6px;">${e}</div>`).join('')}
+      <div class="jadual-wrapper" style="margin-bottom:12px;">
+        <table>
+          <thead><tr><th>#</th><th>CLO</th><th>Jenis</th><th>Teks Soalan</th><th>Markah</th><th>Kesukaran</th></tr></thead>
+          <tbody>
+            ${set.soalan.map((s,i)=>`<tr>
+              <td>${i+1}</td>
+              <td><span class="badge badge-biru">${s.clo}</span></td>
+              <td><span class="badge" style="background:var(--kelabu-latar);color:#374151;">${s.jenis}</span></td>
+              <td style="font-size:.82rem;">${s.teks.substring(0,90)}${s.teks.length>90?'...':''}</td>
+              <td>${s.markah}</td>
+              <td>${s.susah}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="baris-butang">
+        <button class="btn btn-hijau" onclick="eksportSetWord(${idx}, '${jenisAss}', '${masa}', '${markahPenuh}', '${tarikh}')">📥 Muat Turun Set ${idx+1} (.html → Print)</button>
+      </div>
+    </div>`;
+  });
+  elHasil.innerHTML = html;
+
+  // Simpan sets dalam variable global untuk eksport
+  window['sets_' + prefix] = semuaSet;
+}
+
+function eksportSetWord(idx, jenisAss, masa, markahPenuh, tarikh) {
+  const prefix = jenisAss.toLowerCase() === 'kuiz' ? 'kuiz' : 'ujian';
+  const sets = window['sets_' + prefix];
+  if (!sets) return;
+  const set = sets[idx];
+  const setNama = idx < 2 ? `Set ${idx+1} (Utama)` : `Set ${idx-1} (Sandaran)`;
+
+  let soalanHtml = '';
+  set.soalan.forEach((s, i) => {
+    soalanHtml += `<p style="margin-top:16px;"><strong>${i+1}. [${s.clo}] ${s.teks}</strong> <em style="color:#666;font-size:.85em;">(${s.markah} markah)</em></p>`;
+    if (s.jenis === 'MCQ') {
+      soalanHtml += `<p style="margin-left:20px;">A) ${s.a}<br>B) ${s.b}<br>C) ${s.c}<br>D) ${s.d}</p>`;
+    } else if (s.jenis === 'Betul/Salah') {
+      soalanHtml += `<p style="margin-left:20px;">A) Betul &nbsp;&nbsp; B) Salah</p>`;
+    } else {
+      soalanHtml += `<div style="border-bottom:1px solid #ccc;margin:8px 0 4px;height:40px;"></div><div style="border-bottom:1px solid #ccc;margin:4px 0;height:40px;"></div>`;
+    }
+  });
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <style>body{font-family:'Times New Roman',serif;margin:2cm;font-size:12pt;color:#000;}
+  table{width:100%;border-collapse:collapse;font-size:11pt;}
+  td,th{border:1px solid #000;padding:6px 10px;}
+  .header-table td{border:none;padding:2px 4px;font-size:11pt;}
+  h2{text-align:center;font-size:14pt;}
+  @media print{button{display:none;}}</style>
+  </head><body>
+  <table class="header-table"><tr>
+    <td style="width:80px;text-align:center;font-size:24pt;">⚙️</td>
+    <td><strong>POLITEKNIK MALAYSIA</strong><br>Jabatan Kejuruteraan Mekanikal<br>Diploma Kejuruteraan Mekanikal</td>
+    <td style="text-align:right;font-size:10pt;">Kod: DEM30043<br>Semester 5</td>
+  </tr></table>
+  <hr style="border:2px solid #000;margin:8px 0;">
+  <h2>${jenisAss.toUpperCase()} — ${setNama}</h2>
+  <h2>Troubleshooting &amp; Maintenance for Mechanical Components</h2>
+  <table style="margin:12px 0;font-size:11pt;">
+    <tr><th>Masa</th><th>Markah Penuh</th><th>Tarikh</th><th>Jumlah Soalan</th></tr>
+    <tr><td>${masa} minit</td><td>${markahPenuh} markah</td><td>${tarikh||'___________'}</td><td>${set.soalan.length}</td></tr>
+  </table>
+  <p><strong>ARAHAN AM:</strong> Jawab SEMUA soalan. Kertas soalan ini mengandungi <strong>${set.soalan.length}</strong> soalan. Masa yang diperuntukkan ialah <strong>${masa} minit</strong>.</p>
+  <hr>
+  ${soalanHtml}
+  <hr style="margin-top:24px;">
+  <p style="text-align:center;font-size:10pt;color:#666;">— TAMAT KERTAS SOALAN — | DEM30043 | ${setNama}</p>
+  <br><button onclick="window.print()" style="padding:8px 16px;background:#1a3a6b;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12pt;">🖨️ Cetak / Simpan PDF</button>
+  </body></html>`;
+
+  const blob = new Blob([html], {type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${jenisAss}_${setNama.replace(/\s/g,'_')}_DEM30043.html`;
+  a.click();
+}
+
+// ══════════════════════════════════════════════
+// MODUL 3: CQI / CORR
+// ══════════════════════════════════════════════
+const DATA_CONTOH_CQI = [
+  {id:'S001',c1m:16,c1x:20,c2m:15,c2x:20,c3m:11,c3x:20,c4m:10,c4x:20,c5m:17,c5x:20},
+  {id:'S002',c1m:18,c1x:20,c2m:17,c2x:20,c3m:13,c3x:20,c4m:12,c4x:20,c5m:19,c5x:20},
+  {id:'S003',c1m:14,c1x:20,c2m:13,c2x:20,c3m:9,c3x:20,c4m:8,c4x:20,c5m:15,c5x:20},
+  {id:'S004',c1m:17,c1x:20,c2m:16,c2x:20,c3m:12,c3x:20,c4m:11,c4x:20,c5m:18,c5x:20},
+  {id:'S005',c1m:12,c1x:20,c2m:11,c2x:20,c3m:7,c3x:20,c4m:6,c4x:20,c5m:13,c5x:20},
+  {id:'S006',c1m:19,c1x:20,c2m:18,c2x:20,c3m:15,c3x:20,c4m:14,c4x:20,c5m:20,c5x:20},
+  {id:'S007',c1m:15,c1x:20,c2m:14,c2x:20,c3m:10,c3x:20,c4m:9,c4x:20,c5m:16,c5x:20},
+  {id:'S008',c1m:13,c1x:20,c2m:10,c2x:20,c3m:6,c3x:20,c4m:5,c4x:20,c5m:12,c5x:20},
+  {id:'S009',c1m:16,c1x:20,c2m:15,c2x:20,c3m:11,c3x:20,c4m:10,c4x:20,c5m:17,c5x:20},
+  {id:'S010',c1m:18,c1x:20,c2m:17,c2x:20,c3m:14,c3x:20,c4m:13,c4x:20,c5m:19,c5x:20},
+  {id:'S011',c1m:11,c1x:20,c2m:10,c2x:20,c3m:6,c3x:20,c4m:5,c4x:20,c5m:12,c5x:20},
+  {id:'S012',c1m:17,c1x:20,c2m:16,c2x:20,c3m:12,c3x:20,c4m:11,c4x:20,c5m:18,c5x:20},
+  {id:'S013',c1m:14,c1x:20,c2m:13,c2x:20,c3m:8,c3x:20,c4m:7,c4x:20,c5m:15,c5x:20},
+  {id:'S014',c1m:19,c1x:20,c2m:18,c2x:20,c3m:15,c3x:20,c4m:14,c4x:20,c5m:20,c5x:20},
+  {id:'S015',c1m:12,c1x:20,c2m:11,c2x:20,c3m:7,c3x:20,c4m:6,c4x:20,c5m:13,c5x:20},
+  {id:'S016',c1m:16,c1x:20,c2m:15,c2x:20,c3m:10,c3x:20,c4m:9,c4x:20,c5m:17,c5x:20},
+  {id:'S017',c1m:15,c1x:20,c2m:14,c2x:20,c3m:11,c3x:20,c4m:10,c4x:20,c5m:16,c5x:20},
+  {id:'S018',c1m:13,c1x:20,c2m:12,c2x:20,c3m:8,c3x:20,c4m:7,c4x:20,c5m:14,c5x:20},
+  {id:'S019',c1m:17,c1x:20,c2m:16,c2x:20,c3m:13,c3x:20,c4m:12,c4x:20,c5m:18,c5x:20},
+  {id:'S020',c1m:10,c1x:20,c2m:9,c2x:20,c3m:5,c3x:20,c4m:4,c4x:20,c5m:11,c5x:20},
+];
+
+function gunaDataContoh() {
+  dataCQI = DATA_CONTOH_CQI;
+  paparPratatonCQI();
+  tunjukNotif('', '', '');
+}
+
+function muatTurunTemplateCQI() {
+  const csv = 'Student_ID,CLO1_marks,CLO1_max,CLO2_marks,CLO2_max,CLO3_marks,CLO3_max,CLO4_marks,CLO4_max,CLO5_marks,CLO5_max\nS001,16,20,15,20,11,20,10,20,17,20\nS002,18,20,17,20,13,20,12,20,19,20';
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'template_markah_cqi.csv';
+  a.click();
+}
+
+function uploadDataMarkah(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result;
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split(',').map(h => h.trim());
+    dataCQI = lines.slice(1).map(line => {
+      const vals = line.split(',').map(v => v.trim());
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = vals[i]);
+      return {
+        id: obj['Student_ID'] || obj['student_id'] || obj['ID'],
+        c1m: +obj['CLO1_marks']||0, c1x: +obj['CLO1_max']||20,
+        c2m: +obj['CLO2_marks']||0, c2x: +obj['CLO2_max']||20,
+        c3m: +obj['CLO3_marks']||0, c3x: +obj['CLO3_max']||20,
+        c4m: +obj['CLO4_marks']||0, c4x: +obj['CLO4_max']||20,
+        c5m: +obj['CLO5_marks']||0, c5x: +obj['CLO5_max']||20,
+      };
+    });
+    paparPratatonCQI();
+  };
+  reader.readAsText(file);
+}
+
+function paparPratatonCQI() {
+  if (!dataCQI.length) return;
+  const el = document.getElementById('cqi-pratonton');
+  const tunjuk = dataCQI.slice(0,5);
+  el.innerHTML = `<div class="jadual-wrapper"><table>
+    <thead><tr><th>Student ID</th><th>CLO1</th><th>CLO2</th><th>CLO3</th><th>CLO4</th><th>CLO5</th></tr></thead>
+    <tbody>${tunjuk.map(r=>`<tr><td>${r.id}</td>
+      <td>${r.c1m}/${r.c1x}</td><td>${r.c2m}/${r.c2x}</td><td>${r.c3m}/${r.c3x}</td>
+      <td>${r.c4m}/${r.c4x}</td><td>${r.c5m}/${r.c5x}</td></tr>`).join('')}
+    </tbody>
+  </table></div>
+  <small style="color:var(--kelabu);">Menunjukkan 5 rekod pertama daripada ${dataCQI.length} pelajar.</small>`;
+}
+
+function analisisCQI() {
+  if (!dataCQI.length) { alert('Sila upload data markah atau guna Data Contoh dahulu.'); return; }
+
+  const threshPelajar = parseInt(document.getElementById('thresh-pelajar').value);
+  const threshMarkah = parseInt(document.getElementById('thresh-markah').value);
+  const n = dataCQI.length;
+
+  // Kira pencapaian setiap CLO
+  const fields = [
+    {clo:'CLO1', m:'c1m', x:'c1x'},
+    {clo:'CLO2', m:'c2m', x:'c2x'},
+    {clo:'CLO3', m:'c3m', x:'c3x'},
+    {clo:'CLO4', m:'c4m', x:'c4x'},
+    {clo:'CLO5', m:'c5m', x:'c5x'},
+  ];
+
+  const keputusan = fields.map(f => {
+    const peratus = dataCQI.map(r => r[f.x] > 0 ? (r[f.m]/r[f.x])*100 : 0);
+    const lulus = peratus.filter(p => p >= threshMarkah).length;
+    const pcLulus = (lulus/n)*100;
+    const tercapai = pcLulus >= threshPelajar;
+    const cloInfo = CLO_DATA.find(c => c.id === f.clo);
+    return {
+      clo: f.clo,
+      ringkas: cloInfo.ringkas,
+      domain: cloInfo.domain,
+      bloom: cloInfo.bloom,
+      target: threshPelajar,
+      capaian: parseFloat(pcLulus.toFixed(1)),
+      status: tercapai ? 'Tercapai' : 'Tidak Tercapai',
+      beza: parseFloat((pcLulus - threshPelajar).toFixed(1)),
+      peratus
+    };
+  });
+
+  window.keputusanCQI = keputusan;
+
+  // Metrik
+  const tercapai = keputusan.filter(k => k.status === 'Tercapai').length;
+  const tidakTercapai = keputusan.length - tercapai;
+  const avgCapaian = (keputusan.reduce((a,k) => a+k.capaian,0)/keputusan.length).toFixed(1);
+
+  document.getElementById('cqi-metrik').innerHTML = `
+    <div class="metrik"><div class="nilai">${n}</div><div class="label">Jumlah Pelajar</div></div>
+    <div class="metrik"><div class="nilai" style="color:green;">${tercapai}</div><div class="label">CLO Tercapai</div></div>
+    <div class="metrik"><div class="nilai" style="color:red;">${tidakTercapai}</div><div class="label">CLO Tidak Tercapai</div></div>
+    <div class="metrik"><div class="nilai">${avgCapaian}%</div><div class="label">Purata Pencapaian</div></div>`;
+
+  // Jadual CORR
+  const corrBadan = document.getElementById('corr-badan');
+  corrBadan.innerHTML = keputusan.map(k => `
+    <tr style="background:${k.status==='Tercapai'?'#dcfce7':'#fee2e2'}">
+      <td><span class="badge badge-biru">${k.clo}</span></td>
+      <td style="font-size:.82rem;">${k.ringkas}</td>
+      <td style="text-align:center;">${k.target}%</td>
+      <td style="text-align:center;font-weight:700;">${k.capaian}%</td>
+      <td style="text-align:center;"><span class="badge ${k.status==='Tercapai'?'badge-hijau':'badge-merah'}">${k.status}</span></td>
+      <td style="text-align:center;color:${k.beza>=0?'green':'red'};font-weight:700;">${k.beza>=0?'+':''}${k.beza}%</td>
+    </tr>`).join('');
+
+  // Graf
+  renderGrafCQI(keputusan, threshPelajar);
+
+  // Tindakan CQI
+  renderTindakanCQI(keputusan);
+
+  document.getElementById('cqi-hasil').style.display = 'block';
+  document.getElementById('cqi-hasil').scrollIntoView({behavior:'smooth'});
+}
+
+function renderGrafCQI(keputusan, target) {
+  const labels = keputusan.map(k => k.clo);
+  const capaian = keputusan.map(k => k.capaian);
+  const warna = keputusan.map(k => k.status==='Tercapai' ? '#16a34a' : '#dc2626');
+
+  if (grafBar) grafBar.destroy();
+  grafBar = new Chart(document.getElementById('graf-bar'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Pencapaian Sebenar (%)', data: capaian, backgroundColor: warna, borderRadius: 6 },
+        { label: `Target (${target}%)`, data: labels.map(() => target), type: 'line', borderColor: '#1a3a6b', borderDash: [6,3], pointRadius: 0, fill: false, borderWidth: 2 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom' }, title: { display: true, text: 'Pencapaian CLO vs Target' } },
+      scales: { y: { min: 0, max: 100, ticks: { callback: v => v+'%' } } }
+    }
+  });
+
+  const tercapai = keputusan.filter(k => k.status==='Tercapai').length;
+  if (grafPai) grafPai.destroy();
+  grafPai = new Chart(document.getElementById('graf-pai'), {
+    type: 'doughnut',
+    data: {
+      labels: ['CLO Tercapai', 'CLO Tidak Tercapai'],
+      datasets: [{ data: [tercapai, keputusan.length-tercapai], backgroundColor: ['#16a34a','#dc2626'], hoverOffset: 8 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom' }, title: { display: true, text: 'Status Keseluruhan CLO' } }
+    }
+  });
+}
+
+const TINDAKAN_CQI = {
+  C: {
+    'C2': ['Perkukuhkan penerangan konsep asas dalam sesi kuliah', 'Tambah bahan nota ringkasan dan mind map', 'Gunakan kaedah soal jawab aktif (active questioning) semasa PdP'],
+    'C3': ['Tingkatkan soalan latihan berasaskan kes nyata industri', 'Tambah sesi demonstrasi prosedur troubleshooting', 'Gunakan kaedah pembelajaran berasaskan masalah (PBL)'],
+    'C4': ['Tambah tugasan analisis kes industri (case study)', 'Gunakan kaedah Fishbone Diagram dalam latihan', 'Berikan lebih banyak latihan soalan aras analisis (HOTS)'],
+  },
+  P: {
+    'P3': ['Tambah jam amali untuk pelajar berlatih prosedur PM', 'Sediakan panduan kerja (work instruction) yang lebih jelas', 'Gunakan video demonstrasi sebagai panduan amali'],
+  },
+  A: {
+    'A3': ['Perkuatkan penerapan nilai keselamatan dalam setiap sesi amali', 'Jalankan simulasi kerja berkumpulan dengan penilaian peer', 'Tambah perbincangan kes kemalangan industri sebagai pelajaran'],
+  }
+};
+
+function renderTindakanCQI(keputusan) {
+  const gagal = keputusan.filter(k => k.status === 'Tidak Tercapai');
+  const el = document.getElementById('cqi-tindakan');
+  if (gagal.length === 0) {
+    el.innerHTML = '<div class="notif notif-hijau aktif">✅ Tahniah! Semua CLO telah mencapai target. Tiada tindakan CQI kritikal diperlukan.</div>';
+    return;
+  }
+  el.innerHTML = gagal.map(k => {
+    const domain = CLO_DATA.find(c=>c.id===k.clo)?.domain[0] || 'C';
+    const tindakan = (TINDAKAN_CQI[domain]?.[k.bloom] || ['Semak semula strategi PdP untuk CLO ini', 'Tambah latihan dan bahan sokongan', 'Buat semakan soalan penilaian']);
+    return `
+    <div class="clo-baris" style="border-left:4px solid #dc2626;margin-bottom:12px;">
+      <h4 style="color:#991b1b;margin-bottom:8px;">⚠️ ${k.clo} — ${k.ringkas} <span class="badge badge-merah">Tidak Tercapai (${k.capaian}%)</span></h4>
+      <textarea id="tindakan-${k.clo}" rows="4" style="width:100%;font-size:.85rem;border:1px solid var(--border);border-radius:6px;padding:8px;">${tindakan.map((t,i)=>`${i+1}. ${t}`).join('\n')}</textarea>
+    </div>`;
+  }).join('');
+}
+
+function eksportCQIExcel() {
+  if (!window.keputusanCQI) { alert('Sila jalankan analisis dahulu.'); return; }
+  const k = window.keputusanCQI;
+  const wb = XLSX.utils.book_new();
+
+  // Sheet CORR
+  const corrData = [
+    ['COURSE OUTCOME REVIEW REPORT (CORR)'],
+    ['Politeknik Malaysia — DEM30043 — Troubleshooting & Maintenance for Mechanical Components'],
+    ['Tarikh: ' + new Date().toLocaleDateString('ms-MY')],
+    [],
+    ['CLO','Pernyataan CLO','Domain','Aras Bloom','Target (%)','Pencapaian Sebenar (%)','Status','Perbezaan (%)']
+  ];
+  k.forEach(r => corrData.push([r.clo, r.ringkas, r.domain, r.bloom, r.target+'%', r.capaian+'%', r.status, (r.beza>=0?'+':'')+r.beza+'%']));
+
+  // Tindakan CQI
+  corrData.push([]);
+  corrData.push(['TINDAKAN CQI']);
+  k.filter(r=>r.status==='Tidak Tercapai').forEach(r => {
+    const el = document.getElementById('tindakan-' + r.clo);
+    corrData.push([r.clo, el ? el.value : 'Semak semula strategi PdP']);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(corrData);
+  ws['!cols'] = [8,40,12,12,10,14,12,12].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws, 'CORR');
+  XLSX.writeFile(wb, `CQI_CORR_DEM30043_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function cetakLaporan() {
+  window.print();
+}
+
+// ══════════════════════════════════════════════
+// UTILITI
+// ══════════════════════════════════════════════
+function tunjukNotif(id, mesej, jenis) {
+  if (!id) return;
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = `notif notif-${jenis} aktif`;
+  el.textContent = mesej;
+  setTimeout(() => el.classList.remove('aktif'), 4000);
+}
+
+// ── Inisialisasi ──
+mulaModulCIST();
+</script>
+</body>
+</html>
